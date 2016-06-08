@@ -139,8 +139,8 @@ class LockingFilesystem extends Filesystem {
             $source = $this->locker->acquireWrite($path);
             $dest = $this->locker->acquireWrite($newpath);
 
-            $this->assertAbsentWithoutLock($path);
-            $this->assertPresentWithoutLock($newpath);
+            $this->assertPresentWithoutLock($path);
+            $this->assertAbsentWithoutLock($newpath);
 
             return (bool) $this->getAdapter()->rename($path, $newpath);
 
@@ -163,8 +163,8 @@ class LockingFilesystem extends Filesystem {
             $source = $this->locker->acquireRead($path);
             $dest = $this->locker->acquireWrite($newpath);
 
-            $this->assertAbsentWithoutLock($path);
-            $this->assertPresentWithoutLock($newpath);
+            $this->assertPresentWithoutLock($path);
+            $this->assertAbsentWithoutLock($newpath);
 
             return (bool) $this->getAdapter()->copy($path, $newpath);
 
@@ -218,7 +218,7 @@ class LockingFilesystem extends Filesystem {
         }
 
         if ( ! $this->getAdapter()->has($path)) {
-            throw new FileNotFoundException();
+            throw new FileNotFoundException($path);
         }
 
         return true;
@@ -234,7 +234,7 @@ class LockingFilesystem extends Filesystem {
     private function assertAbsentWithoutLock($path)
     {
         if ($this->getAdapter()->has($path)) {
-            throw new FileExistsException();
+            throw new FileExistsException($path);
         }
 
         return true;
