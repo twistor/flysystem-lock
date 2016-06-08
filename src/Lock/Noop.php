@@ -2,19 +2,21 @@
 
 namespace Twistor\Flysystem\Lock;
 
-class Noop {
+use Twistor\Flysystem\LockerInterface;
 
-    public function acquireRead()
+class Noop implements LockerInterface {
+
+    public function acquireRead($path)
     {
 
     }
 
-    public function acquireWrite()
+    public function acquireWrite($path)
     {
 
     }
 
-    public function release()
+    public function release($lock)
     {
 
     }

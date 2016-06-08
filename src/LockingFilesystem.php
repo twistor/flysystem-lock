@@ -6,6 +6,7 @@ use League\Flysystem\FilesystemInterface;
 use League\Flysystem\Handler;
 use League\Flysystem\PluginInterface;
 use League\Flysystem\Util;
+use Twistor\Flysystem\LockerInterface;
 
 class LockingFilesystem implements FilesystemInterface {
 
@@ -16,10 +17,10 @@ class LockingFilesystem implements FilesystemInterface {
     /**
      * Constructs a LockingFilesystem object.
      *
-     * @param AdapterInterface $adapter
-     * @param Config|array     $config
+     * @param FilesystemInterface $filesystem The wrappeed file system.
+     * @param LockerInterface     $locker     The locker.
      */
-    public function __construct(FilesystemInterface $filesystem, $locker)
+    public function __construct(FilesystemInterface $filesystem, LockerInterface $locker)
     {
         $this->filesystem = $filesystem;
         $this->locker = $locker;
