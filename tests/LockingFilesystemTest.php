@@ -1,5 +1,7 @@
 <?php
 
+namespace Twistor\Flysystem\Tests;
+
 use League\Flysystem\Filesystem;
 use Prophecy\Argument;
 use Twistor\Flysystem\Lock\Noop;
@@ -7,9 +9,8 @@ use Twistor\Flysystem\LockingFilesystem;
 
 require_once dirname(__DIR__) . '/vendor/league/flysystem/tests/FilesystemTests.php';
 
-class LockingFilesystemTests extends FilesystemTests
+class LockingFilesystemTest extends \FilesystemTests
 {
-
     /**
      * @before
      */

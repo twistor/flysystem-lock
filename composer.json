@@ -18,7 +18,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Twistor\\Flysystem\\": "src/"
+            "Twistor\\Flysystem\\": "src/",
+            "Twistor\\Flysystem\\Tests\\": "tests/"
         }
     }
 }
