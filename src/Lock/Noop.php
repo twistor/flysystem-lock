@@ -2,6 +2,7 @@
 
 namespace Twistor\Flysystem\Lock;
 
+use Twistor\Flysystem\Lock;
 use Twistor\Flysystem\LockerInterface;
 
 class Noop implements LockerInterface
@@ -14,7 +15,7 @@ class Noop implements LockerInterface
     {
     }
 
-    public function release($lock)
+    public function release(Lock $lock)
     {
     }
 }

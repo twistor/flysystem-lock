@@ -2,6 +2,8 @@
 
 namespace Twistor\Flysystem;
 
+use Twistor\Flysystem\Lock;
+
 interface LockerInterface
 {
     /**
@@ -27,5 +29,5 @@ interface LockerInterface
      *
      * @param $lock The previoulsy acquired lock.
      */
-    public function release($lock);
+    public function release(Lock $lock);
 }
