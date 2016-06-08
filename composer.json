@@ -1,0 +1,24 @@
+{
+    "name": "twistor/flysystem-lock",
+    "type": "library",
+    "description": "",
+    "license": "MIT",
+    "homepage": "http://github.com/twistor/flysystem-lock",
+    "authors": [
+        {
+            "name": "Chris Leppanen",
+            "email": "chris.leppanen@gmail.com"
+        }
+    ],
+    "require": {
+        "league/flysystem": "~1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.8 || ~5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Twistor\\Flysystem\\": "src/"
+        }
+    }
+}
