@@ -2,15 +2,14 @@
 
 namespace Twistor\Flysystem;
 
-use League\Flysystem\AdapterInterface;
-use League\Flysystem\FileExistsException;
-use League\Flysystem\FileNotFoundException;
-use League\Flysystem\Filesystem;
+use League\Flysystem\FilesystemInterface;
+use League\Flysystem\Handler;
+use League\Flysystem\PluginInterface;
 use League\Flysystem\Util;
 
-class LockingFilesystem extends Filesystem {
+class LockingFilesystem implements FilesystemInterface {
 
-    private $hasLock = false;
+    private $filesystem;
 
     private $locker;
 
@@ -20,10 +19,10 @@ class LockingFilesystem extends Filesystem {
      * @param AdapterInterface $adapter
      * @param Config|array     $config
      */
-    public function __construct(AdapterInterface $adapter, $locker, $config = null)
+    public function __construct(FilesystemInterface $filesystem, $locker)
     {
+        $this->filesystem = $filesystem;
         $this->locker = $locker;
-        parent::__construct($adapter, $config);
     }
 
     /**
@@ -32,7 +31,7 @@ class LockingFilesystem extends Filesystem {
     public function has($path)
     {
         return $this->withReadLock($path, function() use ($path) {
-            return parent::has($path);
+            return $this->filesystem->has($path);
         });
     }
 
@@ -42,7 +41,7 @@ class LockingFilesystem extends Filesystem {
     public function write($path, $contents, array $config = [])
     {
         return $this->withWriteLock($path, function () use ($path, $contents, $config) {
-            return parent::write($path, $contents, $config);
+            return $this->filesystem->write($path, $contents, $config);
         });
     }
 
@@ -53,7 +52,7 @@ class LockingFilesystem extends Filesystem {
     {
 
         return $this->withWriteLock($path, function () use ($path, $resource, $config) {
-            return parent::writeStream($path, $resource, $config);
+            return $this->filesystem->writeStream($path, $resource, $config);
         });
     }
 
@@ -63,7 +62,7 @@ class LockingFilesystem extends Filesystem {
     public function put($path, $contents, array $config = [])
     {
         return $this->withWriteLock($path, function () use ($path, $contents, $config) {
-            return parent::put($path, $contents, $config);
+            return $this->filesystem->put($path, $contents, $config);
         });
     }
 
@@ -73,7 +72,7 @@ class LockingFilesystem extends Filesystem {
     public function putStream($path, $resource, array $config = [])
     {
         return $this->withWriteLock($path, function () use ($path, $resource, $config) {
-            return parent::putStream($path, $resource, $config);
+            return $this->filesystem->putStream($path, $resource, $config);
         });
     }
 
@@ -83,7 +82,7 @@ class LockingFilesystem extends Filesystem {
     public function readAndDelete($path)
     {
         return $this->withWriteLock($path, function () use ($path) {
-            return parent::readAndDelete($path);
+            return $this->filesystem->readAndDelete($path);
         });
     }
 
@@ -93,7 +92,7 @@ class LockingFilesystem extends Filesystem {
     public function update($path, $contents, array $config = [])
     {
         return $this->withWriteLock($path, function () use ($path, $contents, $config) {
-            return parent::update($path, $contents, $config);
+            return $this->filesystem->update($path, $contents, $config);
         });
     }
 
@@ -103,7 +102,7 @@ class LockingFilesystem extends Filesystem {
     public function updateStream($path, $resource, array $config = [])
     {
         return $this->withWriteLock($path, function () use ($path, $resource, $config) {
-            return parent::updateStream($path, $resource, $config);
+            return $this->filesystem->updateStream($path, $resource, $config);
         });
     }
 
@@ -113,7 +112,7 @@ class LockingFilesystem extends Filesystem {
     public function read($path)
     {
         return $this->withReadLock($path, function () use ($path) {
-            return parent::read($path);
+            return $this->filesystem->read($path);
         });
     }
 
@@ -123,7 +122,7 @@ class LockingFilesystem extends Filesystem {
     public function readStream($path)
     {
         return $this->withReadLock($path, function () use ($path) {
-            return parent::readStream($path);
+            return $this->filesystem->readStream($path);
         });
     }
 
@@ -139,10 +138,7 @@ class LockingFilesystem extends Filesystem {
             $source = $this->locker->acquireWrite($path);
             $dest = $this->locker->acquireWrite($newpath);
 
-            $this->assertPresentWithoutLock($path);
-            $this->assertAbsentWithoutLock($newpath);
-
-            return (bool) $this->getAdapter()->rename($path, $newpath);
+            return $this->filesystem->rename($path, $newpath);
 
         }
         finally {
@@ -163,10 +159,7 @@ class LockingFilesystem extends Filesystem {
             $source = $this->locker->acquireRead($path);
             $dest = $this->locker->acquireWrite($newpath);
 
-            $this->assertPresentWithoutLock($path);
-            $this->assertAbsentWithoutLock($newpath);
-
-            return (bool) $this->getAdapter()->copy($path, $newpath);
+            return $this->filesystem->copy($path, $newpath);
 
         } finally {
             isset($source) && $this->locker->release($source);
@@ -180,7 +173,7 @@ class LockingFilesystem extends Filesystem {
     public function delete($path)
     {
         return $this->withWriteLock($path, function () use ($path) {
-            return parent::delete($path);
+            return $this->filesystem->delete($path);
         });
     }
 
@@ -190,7 +183,7 @@ class LockingFilesystem extends Filesystem {
     public function deleteDir($dirname)
     {
         return $this->withWriteLock($dirname, function () use ($dirname) {
-            return parent::deleteDir($dirname);
+            return $this->filesystem->deleteDir($dirname);
         });
     }
 
@@ -200,85 +193,162 @@ class LockingFilesystem extends Filesystem {
     public function createDir($dirname, array $config = [])
     {
         return $this->withWriteLock($dirname, function () use ($dirname, $config) {
-            return parent::createDir($dirname, $config);
+            return $this->filesystem->createDir($dirname, $config);
         });
     }
 
     /**
-     * Assert a file is present.
-     *
-     * @param string $path path to file
-     *
-     * @throws FileNotFoundException
+     * @inheritdoc
      */
-    private function assertPresentWithoutLock($path)
+    public function listContents($directory = '', $recursive = false)
     {
-        if ($path === '') {
-            return false;
-        }
-
-        if ( ! $this->getAdapter()->has($path)) {
-            throw new FileNotFoundException($path);
-        }
-
-        return true;
+        return $this->filesystem->listContents($directory, $recursive);
     }
 
     /**
-     * Assert a file is absent.
-     *
-     * @param string $path path to file
-     *
-     * @throws FileExistsException
+     * @inheritdoc
      */
-    private function assertAbsentWithoutLock($path)
+    public function getMimetype($path)
     {
-        if ($this->getAdapter()->has($path)) {
-            throw new FileExistsException($path);
-        }
+        return $this->withReadLock($path, function () use ($path) {
+            return $this->filesystem->getMimetype($path);
+        });
+    }
 
-        return true;
+    /**
+     * @inheritdoc
+     */
+    public function getTimestamp($path)
+    {
+        return $this->withReadLock($path, function () use ($path) {
+            return $this->filesystem->getTimestamp($path);
+        });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getVisibility($path)
+    {
+        return $this->withReadLock($path, function () use ($path) {
+            return $this->filesystem->getVisibility($path);
+        });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getSize($path)
+    {
+        return $this->withReadLock($path, function () use ($path) {
+            return $this->filesystem->getSize($path);
+        });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setVisibility($path, $visibility)
+    {
+        return $this->withWriteLock($path, function () use ($path, $visibility) {
+            return $this->filesystem->setVisibility($path, $visibility);
+        });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getMetadata($path)
+    {
+        return $this->withReadLock($path, function () use ($path) {
+            return $this->filesystem->getMetadata($path);
+        });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function get($path, Handler $handler = null)
+    {
+        return $this->withReadLock($path, function () use ($path, $handler) {
+            $handler = $this->filesystem->get($path, $handler);
+
+            $handler->setFilesystem($this);
+
+            return $handler;
+        });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function addPlugin(PluginInterface $plugin)
+    {
+        $this->filesystem->addPlugin($plugin);
+
+        return $this;
+    }
+
+    /**
+     * Get the Adapter.
+     *
+     * @return AdapterInterface adapter
+     */
+    public function getAdapter()
+    {
+        return $this->filesystem->getAdapter();
+    }
+
+    /**
+     * Get the Config.
+     *
+     * @return Config config object
+     */
+    public function getConfig()
+    {
+        return $this->filesystem->getConfig();
+    }
+
+    /**
+     * Plugins pass-through.
+     *
+     * @param string $method
+     * @param array  $arguments
+     *
+     * @throws BadMethodCallException
+     *
+     * @return mixed
+     */
+    public function __call($method, array $arguments)
+    {
+        return $this->filesystem->invokePlugin($method, $arguments, $this);
     }
 
     private function withReadLock($path, callable $callback)
     {
-        // Detect recursive locks.
-        if ($this->hasLock) {
-            return $callback();
-        }
-
         $path = Util::normalizePath($path);
 
         try {
             $lock = $this->locker->acquireRead($path);
-            $this->hasLock = true;
 
             return $callback();
 
         } finally {
             isset($lock) && $this->locker->release($lock);
-            $this->hasLock = false;
         }
     }
 
     private function withWriteLock($path, callable $callback)
     {
-        // Detect recursive locks.
-        if ($this->hasLock) {
-            return $callback();
-        }
-
         $path = Util::normalizePath($path);
 
         try {
             $lock = $this->locker->acquireWrite($path);
-            $this->hasLock = true;
 
             return $callback();
 
         } finally {
             isset($lock) && $this->locker->release($lock);
-            $this->hasLock = false;
         }
     }
 }

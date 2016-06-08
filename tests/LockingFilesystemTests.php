@@ -1,5 +1,6 @@
 <?php
 
+use League\Flysystem\Filesystem;
 use Prophecy\Argument;
 use Twistor\Flysystem\Lock\Noop;
 use Twistor\Flysystem\LockingFilesystem;
@@ -15,7 +16,7 @@ class LockingFilesystemTests extends FilesystemTests {
     {
         $this->prophecy = $this->prophesize('League\Flysystem\AdapterInterface');
         $this->adapter = $this->prophecy->reveal();
-        $this->filesystem = new LockingFilesystem($this->adapter, new Noop());
+        $this->filesystem = new LockingFilesystem(new Filesystem($this->adapter), new Noop());
         $this->config = Argument::type('League\Flysystem\Config');
     }
 }
