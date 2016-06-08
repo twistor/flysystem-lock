@@ -7,7 +7,8 @@ use Twistor\Flysystem\LockingFilesystem;
 
 require_once dirname(__DIR__) . '/vendor/league/flysystem/tests/FilesystemTests.php';
 
-class LockingFilesystemTests extends FilesystemTests {
+class LockingFilesystemTests extends FilesystemTests
+{
 
     /**
      * @before

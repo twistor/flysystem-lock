@@ -4,15 +4,24 @@ namespace Twistor\Flysystem;
 
 use League\Flysystem\FilesystemInterface;
 use League\Flysystem\Handler;
-use League\Flysystem\PluginInterface;
 use League\Flysystem\Plugin\PluginNotFoundException;
+use League\Flysystem\PluginInterface;
 use League\Flysystem\Util;
-use Twistor\Flysystem\LockerInterface;
 
-class LockingFilesystem implements FilesystemInterface {
-
+class LockingFilesystem implements FilesystemInterface
+{
+    /**
+     * The wrapped filesystem.
+     *
+     * @var \League\Flysystem\FilesystemInterface
+     */
     private $filesystem;
 
+    /**
+     * The locker.
+     *
+     * @var \Twistor\Flysystem\LockerInterface
+     */
     private $locker;
 
     /**
@@ -32,7 +41,7 @@ class LockingFilesystem implements FilesystemInterface {
      */
     public function has($path)
     {
-        return $this->withReadLock($path, function() use ($path) {
+        return $this->withReadLock($path, function () use ($path) {
             return $this->filesystem->has($path);
         });
     }
@@ -52,7 +61,6 @@ class LockingFilesystem implements FilesystemInterface {
      */
     public function writeStream($path, $resource, array $config = [])
     {
-
         return $this->withWriteLock($path, function () use ($path, $resource, $config) {
             return $this->filesystem->writeStream($path, $resource, $config);
         });
@@ -141,9 +149,7 @@ class LockingFilesystem implements FilesystemInterface {
             $dest = $this->locker->acquireWrite($newpath);
 
             return $this->filesystem->rename($path, $newpath);
-
-        }
-        finally {
+        } finally {
             isset($source) && $this->locker->release($source);
             isset($dest) && $this->locker->release($dest);
         }
@@ -162,7 +168,6 @@ class LockingFilesystem implements FilesystemInterface {
             $dest = $this->locker->acquireWrite($newpath);
 
             return $this->filesystem->copy($path, $newpath);
-
         } finally {
             isset($source) && $this->locker->release($source);
             isset($dest) && $this->locker->release($dest);
@@ -204,7 +209,29 @@ class LockingFilesystem implements FilesystemInterface {
      */
     public function listContents($directory = '', $recursive = false)
     {
-        return $this->filesystem->listContents($directory, $recursive);
+        // There's not really a good way to lock a directory listing. Files in
+        // the directory can appear and disappear during or after listing.
+        //
+        // Locking the directory at least ensures that it won't disappear out
+        // from under us. It's still necessary for the user to check before
+        // dealing with the files from a list.
+        //
+        // @todo Is a read lock helpful, or is it harmful?
+        return $this->withReadLock($directory, function () use ($directory, $recursive) {
+            return $this->filesystem->listContents($directory, $recursive);
+        });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getMetadata($path)
+    {
+        // @todo It's not obvious if locking any of these metadata calls is
+        // useful.
+        return $this->withReadLock($path, function () use ($path) {
+            return $this->filesystem->getMetadata($path);
+        });
     }
 
     /**
@@ -214,6 +241,16 @@ class LockingFilesystem implements FilesystemInterface {
     {
         return $this->withReadLock($path, function () use ($path) {
             return $this->filesystem->getMimetype($path);
+        });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getSize($path)
+    {
+        return $this->withReadLock($path, function () use ($path) {
+            return $this->filesystem->getSize($path);
         });
     }
 
@@ -240,30 +277,10 @@ class LockingFilesystem implements FilesystemInterface {
     /**
      * @inheritdoc
      */
-    public function getSize($path)
-    {
-        return $this->withReadLock($path, function () use ($path) {
-            return $this->filesystem->getSize($path);
-        });
-    }
-
-    /**
-     * @inheritdoc
-     */
     public function setVisibility($path, $visibility)
     {
         return $this->withWriteLock($path, function () use ($path, $visibility) {
             return $this->filesystem->setVisibility($path, $visibility);
-        });
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getMetadata($path)
-    {
-        return $this->withReadLock($path, function () use ($path) {
-            return $this->filesystem->getMetadata($path);
         });
     }
 
@@ -292,7 +309,7 @@ class LockingFilesystem implements FilesystemInterface {
     }
 
     /**
-     * Get the Adapter.
+     * Gets the Adapter.
      *
      * @return AdapterInterface adapter
      */
@@ -302,7 +319,7 @@ class LockingFilesystem implements FilesystemInterface {
     }
 
     /**
-     * Get the Config.
+     * Gets the Config.
      *
      * @return Config config object
      */
@@ -325,7 +342,6 @@ class LockingFilesystem implements FilesystemInterface {
     {
         try {
             return $this->filesystem->invokePlugin($method, $arguments, $this);
-
         } catch (PluginNotFoundException $e) {
             throw new \BadMethodCallException('Call to undefined method ' . get_class($this->filesystem) . '::' . $method);
         }
@@ -339,7 +355,6 @@ class LockingFilesystem implements FilesystemInterface {
             $lock = $this->locker->acquireRead($path);
 
             return $callback();
-
         } finally {
             isset($lock) && $this->locker->release($lock);
         }
@@ -353,7 +368,6 @@ class LockingFilesystem implements FilesystemInterface {
             $lock = $this->locker->acquireWrite($path);
 
             return $callback();
-
         } finally {
             isset($lock) && $this->locker->release($lock);
         }

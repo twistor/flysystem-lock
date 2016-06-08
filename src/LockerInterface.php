@@ -2,8 +2,8 @@
 
 namespace Twistor\Flysystem;
 
-interface LockerInterface {
-
+interface LockerInterface
+{
     /**
      * Acquires a read lock.
      *
