@@ -5,6 +5,7 @@ namespace Twistor\Flysystem;
 use League\Flysystem\FilesystemInterface;
 use League\Flysystem\Handler;
 use League\Flysystem\PluginInterface;
+use League\Flysystem\Plugin\PluginNotFoundException;
 use League\Flysystem\Util;
 use Twistor\Flysystem\LockerInterface;
 
@@ -322,7 +323,12 @@ class LockingFilesystem implements FilesystemInterface {
      */
     public function __call($method, array $arguments)
     {
-        return $this->filesystem->invokePlugin($method, $arguments, $this);
+        try {
+            return $this->filesystem->invokePlugin($method, $arguments, $this);
+
+        } catch (PluginNotFoundException $e) {
+            throw new \BadMethodCallException('Call to undefined method ' . get_class($this->filesystem) . '::' . $method);
+        }
     }
 
     private function withReadLock($path, callable $callback)
