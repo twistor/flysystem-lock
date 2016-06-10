@@ -4,7 +4,7 @@ namespace Twistor\Flysystem\Tests;
 
 use League\Flysystem\Filesystem;
 use Prophecy\Argument;
-use Twistor\Flysystem\Lock\Sync;
+use Twistor\Flysystem\Locker\Sync;
 use Twistor\Flysystem\LockingFilesystem;
 
 class LockingFilesystemSyncTest extends LockingFilesystemTest

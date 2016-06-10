@@ -1,6 +1,6 @@
 <?php
 
-namespace Twistor\Flysystem\Lock;
+namespace Twistor\Flysystem\Locker;
 
 use Twistor\Flysystem\LockerInterface;
 
@@ -14,7 +14,7 @@ class Noop implements LockerInterface
      */
     public function acquireRead($path)
     {
-        return TRUE;
+        return true;
     }
 
     /**
@@ -22,7 +22,7 @@ class Noop implements LockerInterface
      */
     public function acquireWrite($path)
     {
-        return TRUE;
+        return true;
     }
 
     /**

@@ -1,8 +1,9 @@
 <?php
 
-namespace Twistor\Flysystem\Lock;
+namespace Twistor\Flysystem\Locker;
 
 use Twistor\Flysystem\Exception\LockUnavaibleException;
+use Twistor\Flysystem\Exception\UnlockFailedException;
 use Twistor\Flysystem\LockerInterface;
 
 /**
@@ -35,7 +36,7 @@ class Sync implements LockerInterface
      * Constructs a Sync object.
      *
      * @param string $prefix The lock prefix.
-     * @param int    $wait (Optional) The amount of time to wait for locks.
+     * @param int    $wait   (Optional) The amount of time to wait for locks.
      */
     public function __construct($prefix, $wait = -1)
     {
@@ -76,7 +77,9 @@ class Sync implements LockerInterface
      */
     public function releaseRead($lock)
     {
-        $lock->readunlock();
+        if ( ! $lock->readunlock()) {
+            throw new UnlockFailedException($lock->path);
+        }
     }
 
     /**
@@ -84,7 +87,9 @@ class Sync implements LockerInterface
      */
     public function releaseWrite($lock)
     {
-        $lock->writeunlock();
+        if ( ! $lock->writeunlock()) {
+            throw new UnlockFailedException($lock->path);
+        }
     }
 
     /**
@@ -98,8 +103,9 @@ class Sync implements LockerInterface
     {
         $key = sha1($this->prefix  . '://' . $path);
 
-        if (!isset($this->syncs[$key])) {
+        if ( ! isset($this->syncs[$key])) {
             $this->syncs[$key] = new \SyncReaderWriter($key, true);
+            $this->syncs[$key]->path = $path;
         }
 
         return $this->syncs[$key];

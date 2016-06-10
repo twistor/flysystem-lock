@@ -4,7 +4,7 @@ namespace Twistor\Flysystem\Tests;
 
 use League\Flysystem\Filesystem;
 use Prophecy\Argument;
-use Twistor\Flysystem\Lock\Flock;
+use Twistor\Flysystem\Locker\Flock;
 use Twistor\Flysystem\LockingFilesystem;
 
 class LockingFilesystemFlockTest extends LockingFilesystemTest
@@ -16,7 +16,11 @@ class LockingFilesystemFlockTest extends LockingFilesystemTest
     {
         $this->prophecy = $this->prophesize('League\Flysystem\AdapterInterface');
         $this->adapter = $this->prophecy->reveal();
-        $this->filesystem = new LockingFilesystem(new Filesystem($this->adapter), new Flock());
+
+        $filesystem = new Filesystem($this->adapter);
+        $locker = new Flock('test_prefix');
+
+        $this->filesystem = new LockingFilesystem($filesystem, $locker);
         $this->config = Argument::type('League\Flysystem\Config');
     }
 }
