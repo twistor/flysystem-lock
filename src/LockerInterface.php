@@ -25,9 +25,16 @@ interface LockerInterface
     public function acquireWrite($path);
 
     /**
-     * Releases the lock.
+     * Releases the read lock.
      *
      * @param $lock The previoulsy acquired lock.
      */
-    public function release(Lock $lock);
+    public function releaseRead($lock);
+
+    /**
+     * Releases the write lock.
+     *
+     * @param $lock The previoulsy acquired lock.
+     */
+    public function releaseWrite($lock);
 }

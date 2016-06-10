@@ -147,8 +147,8 @@ class LockingFilesystem implements FilesystemInterface
 
             return $this->filesystem->rename($path, $newpath);
         } finally {
-            isset($source) && $this->locker->release($source);
-            isset($dest) && $this->locker->release($dest);
+            isset($source) && $this->locker->releaseWrite($source);
+            isset($dest) && $this->locker->releaseWrite($dest);
         }
     }
 
@@ -163,8 +163,8 @@ class LockingFilesystem implements FilesystemInterface
 
             return $this->filesystem->copy($path, $newpath);
         } finally {
-            isset($source) && $this->locker->release($source);
-            isset($dest) && $this->locker->release($dest);
+            isset($source) && $this->locker->releaseRead($source);
+            isset($dest) && $this->locker->releaseWrite($dest);
         }
     }
 
@@ -344,7 +344,7 @@ class LockingFilesystem implements FilesystemInterface
 
             return $callback();
         } finally {
-            isset($lock) && $this->locker->release($lock);
+            isset($lock) && $this->locker->releaseRead($lock);
         }
     }
 
@@ -355,7 +355,7 @@ class LockingFilesystem implements FilesystemInterface
 
             return $callback();
         } finally {
-            isset($lock) && $this->locker->release($lock);
+            isset($lock) && $this->locker->releaseWrite($lock);
         }
     }
 }
