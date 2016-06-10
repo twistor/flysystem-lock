@@ -2,6 +2,7 @@
 
 namespace Twistor\Flysystem\Locker;
 
+use League\Flysystem\Util;
 use Twistor\Flysystem\Exception\LockUnavaibleException;
 use Twistor\Flysystem\Exception\UnlockFailedException;
 use Twistor\Flysystem\LockerInterface;
@@ -38,8 +39,16 @@ class Flock implements LockerInterface
      */
     public function __construct($prefix, $temp_dir = null)
     {
-        $this->prefix = $prefix;
         $this->tempDir = $temp_dir === null ? sys_get_temp_dir() : rtrim($temp_dir, '\/');
+        $this->tempDir .= '/flysystem-lock/' . Util::normalizePath($prefix);
+
+        if ( ! is_dir($this->tempDir)) {
+            @mkdir($this->tempDir, 0777, true);
+
+            if ( ! is_dir($this->tempDir)) {
+                throw new \InvalidArgumentException();
+            }
+        }
     }
 
     /**
@@ -75,29 +84,6 @@ class Flock implements LockerInterface
     }
 
     /**
-     * Performs the flock() call.
-     *
-     * @param string $key
-     * @param int    $operation
-     *
-     * @return bool
-     */
-    private function flock($key, $operation)
-    {
-        try {
-            $handle = fopen($key, 'c');
-
-            if ($handle && flock($handle, $operation)) {
-                return true;
-            }
-
-            return false;
-        } finally {
-            is_resource($handle) && fclose($handle);
-        }
-    }
-
-    /**
      * Returns the lock.
      *
      * @param string $path
@@ -109,13 +95,13 @@ class Flock implements LockerInterface
      */
     private function lock($path, $operation)
     {
-        $key = $this->getLockKey($path);
+        $handle = fopen($this->tempDir . '/' . sha1($path) . '.lock', 'c');
 
-        if ( ! $this->flock($key, $operation)) {
-            throw new LockUnavaibleException($path);
+        if ($handle && flock($handle, $operation)) {
+            return compact('handle', 'path');
         }
 
-        return compact('key', 'path');
+        throw new LockUnavaibleException($path);
     }
 
     /**
@@ -127,22 +113,12 @@ class Flock implements LockerInterface
      */
     private function unlock(array $lock)
     {
-        if ( ! $this->flock($lock['key'], \LOCK_UN)) {
-            throw new UnlockFailedException($lock['path']);
+        try {
+            if ( ! flock($lock['handle'], \LOCK_UN)) {
+                throw new UnlockFailedException($lock['path']);
+            }
+        } finally {
+            is_resource($lock['handle']) && fclose($lock['handle']);
         }
-    }
-
-    /**
-     * Returns the lock path.
-     *
-     * @param string $path
-     *
-     * @return string
-     */
-    private function getLockKey($path)
-    {
-        $path = $this->prefix . '://' . $path;
-
-        return $this->tempDir . '/flysystem-lock-' . sha1($path) . '.lock';
     }
 }
