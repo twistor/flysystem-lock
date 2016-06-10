@@ -20,7 +20,7 @@ class Flock implements LockerInterface
      */
     public function acquireRead($path)
     {
-        return $this->lock($this->getLockPath($path), \LOCK_SH);
+        return $this->flock($this->getLockPath($path), \LOCK_SH);
     }
 
     /**
@@ -28,7 +28,7 @@ class Flock implements LockerInterface
      */
     public function acquireWrite($path)
     {
-        return $this->lock($this->getLockPath($path), \LOCK_EX);
+        return $this->flock($this->getLockPath($path), \LOCK_EX);
     }
 
     /**
@@ -36,7 +36,7 @@ class Flock implements LockerInterface
      */
     public function release(Lock $lock)
     {
-        $this->lock($lock->getPath(), \LOCK_UN);
+        $this->flock($lock->getPath(), \LOCK_UN);
     }
 
     private function getLockPath($path)
@@ -44,7 +44,7 @@ class Flock implements LockerInterface
         return $this->tempDir . '/flysystem-lock-' . sha1($path) . '.lock';
     }
 
-    private function lock($path, $operation)
+    private function flock($path, $operation)
     {
         try {
             $handle = fopen($path, 'c');

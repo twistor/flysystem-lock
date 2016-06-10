@@ -141,9 +141,6 @@ class LockingFilesystem implements FilesystemInterface
      */
     public function rename($path, $newpath)
     {
-        $path = Util::normalizePath($path);
-        $newpath = Util::normalizePath($newpath);
-
         try {
             $source = $this->locker->acquireWrite($path);
             $dest = $this->locker->acquireWrite($newpath);
@@ -160,9 +157,6 @@ class LockingFilesystem implements FilesystemInterface
      */
     public function copy($path, $newpath)
     {
-        $path = Util::normalizePath($path);
-        $newpath = Util::normalizePath($newpath);
-
         try {
             $source = $this->locker->acquireRead($path);
             $dest = $this->locker->acquireWrite($newpath);
@@ -215,8 +209,6 @@ class LockingFilesystem implements FilesystemInterface
         // Locking the directory at least ensures that it won't disappear out
         // from under us. It's still necessary for the user to check before
         // dealing with the files from a list.
-        //
-        // @todo Is a read lock helpful, or is it harmful?
         return $this->withReadLock($directory, function () use ($directory, $recursive) {
             return $this->filesystem->listContents($directory, $recursive);
         });
@@ -227,8 +219,6 @@ class LockingFilesystem implements FilesystemInterface
      */
     public function getMetadata($path)
     {
-        // @todo It's not obvious if locking any of these metadata calls is
-        // useful.
         return $this->withReadLock($path, function () use ($path) {
             return $this->filesystem->getMetadata($path);
         });
@@ -349,10 +339,8 @@ class LockingFilesystem implements FilesystemInterface
 
     private function withReadLock($path, callable $callback)
     {
-        $path = Util::normalizePath($path);
-
         try {
-            $lock = $this->locker->acquireRead($path);
+            $lock = $this->locker->acquireRead(Util::normalizePath($path));
 
             return $callback();
         } finally {
@@ -362,10 +350,8 @@ class LockingFilesystem implements FilesystemInterface
 
     private function withWriteLock($path, callable $callback)
     {
-        $path = Util::normalizePath($path);
-
         try {
-            $lock = $this->locker->acquireWrite($path);
+            $lock = $this->locker->acquireWrite(Util::normalizePath($path));
 
             return $callback();
         } finally {
