@@ -8,6 +8,8 @@ use Twistor\Flysystem\LockerInterface;
 
 /**
  * A locking inplementation using APCu.
+ *
+ * @todo Implement timeouts.
  */
 class Apc implements LockerInterface
 {
@@ -28,7 +30,7 @@ class Apc implements LockerInterface
      */
     public function acquireRead($path)
     {
-        $this->getWriteMutex($path);
+        $write = $this->getWriteMutex($path);
 
         $read = $this->prefix . ':r:' . $path;
 
@@ -36,7 +38,7 @@ class Apc implements LockerInterface
         apc_add($read, 0);
         apc_inc($read);
 
-        $this->releaseWriteMutex($path);
+        $this->releaseWrite($path, $write);
 
         return $read;
     }
@@ -46,7 +48,7 @@ class Apc implements LockerInterface
      */
     public function acquireWrite($path)
     {
-        $this->getWriteMutex($path);
+        $write = $this->getWriteMutex($path);
 
         $read = $this->prefix . ':r:' . $path;
 
@@ -55,7 +57,7 @@ class Apc implements LockerInterface
             usleep(0);
         }
 
-        return $path;
+        return $write;
     }
 
     /**
@@ -65,7 +67,7 @@ class Apc implements LockerInterface
     {
         // Decrement readers.
         if (apc_dec($lock) === false) {
-            throw new \Exception(":r: does not exist");
+            throw new UnlockFailedException($path);
         }
     }
 
@@ -74,9 +76,18 @@ class Apc implements LockerInterface
      */
     public function releaseWrite($path, $lock)
     {
-        $this->releaseWriteMutex($path);
+        if ( ! apc_delete($lock)) {
+            throw new UnlockFailedException($path);
+        }
     }
 
+    /**
+     * Gets the write mutex.
+     *
+     * @param string $path
+     *
+     * @return string
+     */
     private function getWriteMutex($path)
     {
         $write = $this->prefix . ':w:' . $path;
@@ -84,12 +95,7 @@ class Apc implements LockerInterface
         while ( ! apc_add($write, 1)) {
             usleep(0);
         }
-    }
 
-    private function releaseWriteMutex($path)
-    {
-        if ( ! apc_delete($this->prefix . ':w:' . $path)) {
-            throw new \Exception(':w: does not exist');
-        }
+        return $write;
     }
 }
