@@ -141,14 +141,17 @@ class LockingFilesystem implements FilesystemInterface
      */
     public function rename($path, $newpath)
     {
+        $path = Util::normalizePath($path);
+        $newpath = Util::normalizePath($newpath);
+
         try {
             $source = $this->locker->acquireWrite($path);
             $dest = $this->locker->acquireWrite($newpath);
 
             return $this->filesystem->rename($path, $newpath);
         } finally {
-            isset($source) && $this->locker->releaseWrite($source);
-            isset($dest) && $this->locker->releaseWrite($dest);
+            isset($source) && $this->locker->releaseWrite($path, $source);
+            isset($dest) && $this->locker->releaseWrite($newpath, $dest);
         }
     }
 
@@ -157,14 +160,17 @@ class LockingFilesystem implements FilesystemInterface
      */
     public function copy($path, $newpath)
     {
+        $path = Util::normalizePath($path);
+        $newpath = Util::normalizePath($newpath);
+
         try {
             $source = $this->locker->acquireRead($path);
             $dest = $this->locker->acquireWrite($newpath);
 
             return $this->filesystem->copy($path, $newpath);
         } finally {
-            isset($source) && $this->locker->releaseRead($source);
-            isset($dest) && $this->locker->releaseWrite($dest);
+            isset($source) && $this->locker->releaseRead($path, $source);
+            isset($dest) && $this->locker->releaseWrite($newpath, $dest);
         }
     }
 
@@ -344,7 +350,7 @@ class LockingFilesystem implements FilesystemInterface
 
             return $callback();
         } finally {
-            isset($lock) && $this->locker->releaseRead($lock);
+            isset($lock) && $this->locker->releaseRead($path, $lock);
         }
     }
 
@@ -355,7 +361,7 @@ class LockingFilesystem implements FilesystemInterface
 
             return $callback();
         } finally {
-            isset($lock) && $this->locker->releaseWrite($lock);
+            isset($lock) && $this->locker->releaseWrite($path, $lock);
         }
     }
 }

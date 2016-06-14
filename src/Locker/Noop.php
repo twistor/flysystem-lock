@@ -28,11 +28,11 @@ class Noop implements LockerInterface
     /**
      * @inheritdoc
      */
-    public function releaseRead($lock)
+    public function releaseRead($path, $lock)
     {
     }
 
-    public function releaseWrite($lock)
+    public function releaseWrite($path, $lock)
     {
     }
 }

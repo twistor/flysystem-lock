@@ -14,16 +14,10 @@ use Twistor\Flysystem\LockerInterface;
  * web heads.
  *
  * @todo Add support for timeouts using LOCK_NB.
+ * @todo Is there a way to clean up the files after ourselves?
  */
 class Flock implements LockerInterface
 {
-    /**
-     * The lock prefix.
-     *
-     * @var string
-     */
-    private $prefix;
-
     /**
      * The temporary directory.
      *
@@ -40,7 +34,10 @@ class Flock implements LockerInterface
     public function __construct($prefix, $temp_dir = null)
     {
         $this->tempDir = $temp_dir === null ? sys_get_temp_dir() : rtrim($temp_dir, '\/');
-        $this->tempDir .= '/flysystem-lock/' . Util::normalizePath($prefix);
+
+        $this->tempDir .= DIRECTORY_SEPARATOR;
+        $this->tempDir .= 'flysystem-lock' . DIRECTORY_SEPARATOR;
+        $this->tempDir .= Util::normalizePath($prefix) . DIRECTORY_SEPARATOR;
 
         if ( ! is_dir($this->tempDir)) {
             @mkdir($this->tempDir, 0777, true);
@@ -70,17 +67,17 @@ class Flock implements LockerInterface
     /**
      * @inheritdoc
      */
-    public function releaseRead($lock)
+    public function releaseRead($path, $lock)
     {
-        $this->unlock($lock);
+        $this->unlock($path, $lock);
     }
 
     /**
      * @inheritdoc
      */
-    public function releaseWrite($lock)
+    public function releaseWrite($path, $lock)
     {
-        $this->unlock($lock);
+        $this->unlock($path, $lock);
     }
 
     /**
@@ -89,16 +86,16 @@ class Flock implements LockerInterface
      * @param string $path
      * @param int    $operation
      *
-     * @return array
+     * @return resource
      *
      * @throws LockUnavaibleException
      */
     private function lock($path, $operation)
     {
-        $handle = fopen($this->tempDir . '/' . sha1($path) . '.lock', 'c');
+        $handle = fopen($this->tempDir . sha1($path) . '.lock', 'c');
 
         if ($handle && flock($handle, $operation)) {
-            return compact('handle', 'path');
+            return $handle;
         }
 
         throw new LockUnavaibleException($path);
@@ -107,18 +104,19 @@ class Flock implements LockerInterface
     /**
      * Unlocks a lock.
      *
-     * @param array $lock
+     * @param string $path
+     * @param resource $handle
      *
      * @throws UnlockFailedException
      */
-    private function unlock(array $lock)
+    private function unlock($path, $handle)
     {
         try {
-            if ( ! flock($lock['handle'], \LOCK_UN)) {
-                throw new UnlockFailedException($lock['path']);
+            if ( ! flock($handle, \LOCK_UN)) {
+                throw new UnlockFailedException($path);
             }
         } finally {
-            is_resource($lock['handle']) && fclose($lock['handle']);
+            is_resource($handle) && fclose($handle);
         }
     }
 }

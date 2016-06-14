@@ -75,20 +75,20 @@ class Sync implements LockerInterface
     /**
      * @inheritdoc
      */
-    public function releaseRead($lock)
+    public function releaseRead($path, $lock)
     {
         if ( ! $lock->readunlock()) {
-            throw new UnlockFailedException($lock->path);
+            throw new UnlockFailedException($path);
         }
     }
 
     /**
      * @inheritdoc
      */
-    public function releaseWrite($lock)
+    public function releaseWrite($path, $lock)
     {
         if ( ! $lock->writeunlock()) {
-            throw new UnlockFailedException($lock->path);
+            throw new UnlockFailedException($path);
         }
     }
 
@@ -105,7 +105,6 @@ class Sync implements LockerInterface
 
         if ( ! isset($this->syncs[$key])) {
             $this->syncs[$key] = new \SyncReaderWriter($key, true);
-            $this->syncs[$key]->path = $path;
         }
 
         return $this->syncs[$key];

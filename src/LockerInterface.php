@@ -11,7 +11,7 @@ interface LockerInterface
      *
      * @param string $path
      *
-     * @return Lock
+     * @return mixed
      */
     public function acquireRead($path);
 
@@ -20,21 +20,23 @@ interface LockerInterface
      *
      * @param string $path
      *
-     * @return Lock
+     * @return mixed
      */
     public function acquireWrite($path);
 
     /**
      * Releases the read lock.
      *
-     * @param $lock The previoulsy acquired lock.
+     * @param string $path The path to unlock.
+     * @param mixed  $lock The previoulsy acquired lock.
      */
-    public function releaseRead($lock);
+    public function releaseRead($path, $lock);
 
     /**
      * Releases the write lock.
      *
-     * @param $lock The previoulsy acquired lock.
+     * @param string $path The path to unlock.
+     * @param mixed  $lock The previoulsy acquired lock.
      */
-    public function releaseWrite($lock);
+    public function releaseWrite($path, $lock);
 }
